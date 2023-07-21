@@ -1,1 +1,1 @@
-# Vinky-plugins
++ ChatRP v1.0.0
