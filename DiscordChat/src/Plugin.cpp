@@ -2,8 +2,6 @@
 
 #include "Plugin.h"
 
-#include "Config.h"
-
 #include <fmt/format.h>
 
 #include <filesystem>
@@ -36,7 +34,7 @@ using std::string;
 
 WebSocketClient client;
 
-Config mConfig;
+std::string joinMsg, chatMsg, leftMsg;
 
 MCRESULT runCmd(const string& cmd) {
   std::unique_ptr<CommandOrigin> origin = std::make_unique<ServerCommandOrigin>(
@@ -63,6 +61,9 @@ Plugin::Plugin(ll::plugin::NativePlugin& self) : mSelf(self) {
 
 bool Plugin::enable() {
   string ws_uri = mConfig.wsUri;
+  joinMsg = mConfig.playerJoinMessage;
+  chatMsg = mConfig.playerChatMessage;
+  leftMsg = mConfig.playerLeaveMessage;
 
   try {
     client.Connect(ws_uri);
@@ -107,7 +108,7 @@ LL_AUTO_TYPED_INSTANCE_HOOK(
     void
 ) {
   if (client.GetStatus() == WebSocketClient::Status::Open) {
-    client.SendText(fmt::format(fmt::runtime(mConfig.playerJoinMessage), this->getRealName()));
+    client.SendText(fmt::format(fmt::runtime(joinMsg), this->getRealName()));
   }
   origin();
 }
@@ -123,7 +124,7 @@ LL_AUTO_TYPED_INSTANCE_HOOK(
 ) {
   if (ServerPlayer* player = getServerPlayer(identifier, packet.mClientSubId); player) {
     if (client.GetStatus() == WebSocketClient::Status::Open) {
-      client.SendText(fmt::format(fmt::runtime(mConfig.playerChatMessage), player->getRealName(), const_cast<TextPacket&>(packet).mMessage));
+      client.SendText(fmt::format(fmt::runtime(chatMsg), player->getRealName(), const_cast<TextPacket&>(packet).mMessage));
     }
   }
   origin(identifier, packet);
@@ -137,7 +138,7 @@ LL_AUTO_TYPED_INSTANCE_HOOK(
   void
 ) {
   if (client.GetStatus() == WebSocketClient::Status::Open) {
-    client.SendText(fmt::format(fmt::runtime(mConfig.playerLeaveMessage), this->getRealName()));
+    client.SendText(fmt::format(fmt::runtime(leftMsg), this->getRealName()));
   }
   origin();
 }

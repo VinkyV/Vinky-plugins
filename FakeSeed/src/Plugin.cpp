@@ -1,5 +1,3 @@
-#include <ll/api/plugin/NativePlugin.h>
-
 #include "Plugin.h"
 
 #include <iostream>

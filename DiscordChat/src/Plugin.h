@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ll/api/plugin/NativePlugin.h>
+#include <Config.h>
 
 namespace plugin {
 
@@ -22,6 +23,7 @@ public:
     bool disable();
 private:
     ll::plugin::NativePlugin& mSelf;
+    Config mConfig;
 };
 
 } // namespace plugin

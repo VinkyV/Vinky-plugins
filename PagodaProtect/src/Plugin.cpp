@@ -2,11 +2,9 @@
 
 #include "Plugin.h"
 
-#include "Config.h"
-
 #include <fmt/format.h>
 
-#include <filesystem>
+#include <ostream>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -37,17 +35,16 @@
 #include <mc/world/item/Item.h>
 #include <mc/world/item/ItemStackBase.h>
 #include <mc/world/containers/models/LevelContainerModel.h>
+#include <mc/world/level/BlockEventCoordinator.h>
+#include <mc/nbt/CompoundTag.h>
+#include <mc/nbt/Tag.h>
+#include <mc/nbt/ListTag.h>
 
-#include "Database.h"
+//#include "Database.h"
 
-using std::cout;
-using std::endl;
-using std::string;
+#define datapath "./logs/PagodaProtect/"
 
-
-Config mConfig;
-
-MCRESULT runCmd(const string& cmd) {
+MCRESULT runCmd(const std::string& cmd) {
   std::unique_ptr<CommandOrigin> origin = std::make_unique<ServerCommandOrigin>(
     ServerCommandOrigin("Server", ll::service::getLevel()->asServer(), CommandPermissionLevel::Internal, 0)
   );
@@ -55,25 +52,47 @@ MCRESULT runCmd(const string& cmd) {
   return ll::service::getMinecraft()->getCommands().executeCommand(context, false);
 }
 
+std::string GetFullDateTime()
+{
+    time_t t = time(NULL);
+    tm ts;
+    localtime_s(&ts, &t);
+    char buf[24] = { 0 };
+    strftime(buf, 24, "%Y-%m-%d %H:%M:%S", &ts);
+    return std::string(buf);
+}
+
+std::string GetDateTime()
+{
+    time_t t = time(NULL);
+    tm ts;
+    localtime_s(&ts, &t);
+    char buf[24] = { 0 };
+    strftime(buf, 24, "%Y-%m-%d", &ts);
+    return std::string(buf);
+}
+
+void logToFile(std::string message) {
+    std::ofstream logFile(datapath + GetDateTime() + "-PagodaProtect.log", std::ios::app);
+    if (logFile.is_open()) {
+      logFile << "[" << GetFullDateTime() << "] " << message << std::endl;
+      logFile.close();
+    } else {
+      std::cerr << "Error: Unable to open log file." << std::endl;
+    }
+}
+
 namespace plugin {
 
 Plugin::Plugin(ll::plugin::NativePlugin& self) : mSelf(self) {
-  const auto& configFilePath = self.getConfigDir() / "config.json";
-  if (!ll::config::loadConfig(mConfig, configFilePath)) {
-    mSelf.getLogger().warn("Cannot load configurations from {}", configFilePath);
-    mSelf.getLogger().info("Saving default configurations");
 
-    if (!ll::config::saveConfig(mConfig, configFilePath)) {
-      mSelf.getLogger().error("Cannot save default configurations to {}", configFilePath);
-    }
-  }
+  //initDB();
 
-  initDB();
-
-  mSelf.getLogger().info("Loaded!");
+  mSelf.getLogger().info("By: VinkyV#7660");
 }
 
 bool Plugin::enable() {
+  mSelf.getLogger().info("Succesfully loaded!");
   return true;
 }
 
@@ -96,7 +115,22 @@ Container* getContainer(Vec3 pos, int dim) {
   return ((DropperBlockActor*)nullptr)->getContainerAt(*getBlockSource(dim), pos);
 }
 
-LL_AUTO_TYPED_INSTANCE_HOOK(
+LL_AUTO_TYPE_INSTANCE_HOOK(
+  PlayerPlaceBlockHook,
+  HookPriority::Normal,
+  BlockEventCoordinator,
+  &BlockEventCoordinator::sendBlockPlacedByPlayer,
+  void,
+  Player& player,
+  Block const& blk,
+  BlockPos const& pos,
+  bool underwater
+){
+  int x = pos.get<int>(0), y = pos.get<int>(1), z = pos.get<int>(2), dim = player.getDimensionId();
+  logToFile(fmt::format("[BlockPlaced] player: {} block: {}, x: {}, y: {}, z: {}, dim: {}", player.getRealName(), blk.getTypeName(), x, y, z, dim));
+}
+
+LL_AUTO_TYPE_INSTANCE_HOOK(
     PlayerDestroyBlockHook,
     HookPriority::Normal,
     Block,
@@ -108,19 +142,21 @@ LL_AUTO_TYPED_INSTANCE_HOOK(
   int x = pos.get<int>(0), y = pos.get<int>(1), z = pos.get<int>(2), dim = player.getDimensionId();
   if (this->getTypeName() == "minecraft:chest" || this->getTypeName() == "minecraft:trapped_chest") {
     Container* ct = getContainer(pos.center(), player.getDimensionId());
-    std::vector<ItemStack const*> items = ct->getSlots();
-    for (int i = 0;i < items.size();i++) {
-      if (!items[i]->isNull()) {
-        cout << items[i]->getTypeName() << " " << x << " " << y << " " << z << " " << dim << endl;
+    std::vector<ItemStack const*> itemList = ct->getSlots();
+    for (int i = 0;i < itemList.size();i++) {
+      if (!itemList[i]->isNull()) {
+        //logBlock(player, itemList[i]->getId(), dim, x, y, z, 3, (int)itemList[i]->mAuxValue, (int)itemList[i]->mCount, i, true);
+        //std::cout << itemList[i]->getTypeName() << " " << x << " " << y << " " << z << " " << dim << std::endl;
+        logToFile(fmt::format("[ItemDropAfterDestroy] player: {} item: {}, x: {}, y: {}, z: {}, dim: {}, count: {}x, slot: {} nbt: {}", player.getRealName(), itemList[i]->getTypeName(), x, y, z, dim, (int)itemList[i]->mCount, i, itemList[i]->save()->toSnbt(SnbtFormat::Minimize)));
       }
     }
   }
-  cout << this->getTypeName() << " " << x << " " << y << " " << z << " " << dim << endl;
-  cout << "Player break block" << endl;
+  //logBlock(player, -1, dim, x, y, z, 1, -1, -1, -1, false);
+  logToFile(fmt::format("[BlockDestroyed] player: {} block: {}, x: {}, y: {}, z: {}, dim: {}", player.getRealName(), this->getTypeName(), x, y, z, dim));
   return origin(player, pos);
 }
 
-LL_AUTO_TYPED_INSTANCE_HOOK(
+LL_AUTO_TYPE_INSTANCE_HOOK(
   ContainerChangedHook,
   HookPriority::Normal,
   LevelContainerModel,
@@ -135,6 +171,7 @@ LL_AUTO_TYPED_INSTANCE_HOOK(
     int slot = slotNumber + this->_getContainerOffset();
     BlockPos* pos = (BlockPos*)((char*)this + 216);
     int x = pos->get<int>(0), y = pos->get<int>(1), z = pos->get<int>(2), dim = player->getDimensionId();
-    cout << slot << " " << x << " " << y << " " << z << " " << dim << " " << oldItem->getTypeName() << " " << (int)oldItem->mCount << " " << newItem->getTypeName() << " " << (int)newItem->mCount << endl;
+    logToFile(fmt::format("[ItemChanged] player: {} slot:{}, x: {}, y: {}, z: {}, dim: {}, oldItem: {} {}x nbt: {}, newItem: {} {}x nbt: {}", player->getRealName(), slot, x, y, z, dim, oldItem->getTypeName(), (int)oldItem->mCount, oldItem->save()->toSnbt(SnbtFormat::Minimize), newItem->getTypeName(), (int)newItem->mCount, newItem->save()->toSnbt(SnbtFormat::Minimize)));
   }
 }
+

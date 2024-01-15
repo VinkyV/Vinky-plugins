@@ -3,9 +3,7 @@
 #include "Plugin.h"
 
 #include <iostream>
-#include <fstream>
 #include <string>
-#include <filesystem>
 
 #include <ll/api/memory/Hook.h>
 #include <ll/api/memory/Memory.h>
@@ -56,8 +54,7 @@ bool Plugin::enable() {
         throw std::runtime_error("failed to get command registry");
     }
 
-    auto tpsCommand =
-        DynamicCommand::createCommand(commandRegistry, "tps", "Server tps", CommandPermissionLevel::Any);
+    auto tpsCommand = DynamicCommand::createCommand(commandRegistry, "tps", "Server tps", CommandPermissionLevel::Any);
     tpsCommand->addOverload();
     tpsCommand->setCallback(
         [&logger](DynamicCommand const&, CommandOrigin const& origin, CommandOutput& output, std::unordered_map<std::string, DynamicCommand::Result>&) {
@@ -106,7 +103,7 @@ LL_AUTO_STATIC_HOOK(
     void* self
 ){
     try {
-		++tick;
+		tick++;
 		if (tick == resetTicks) {
 			tick = 0;
 			timeOld = timeNew;

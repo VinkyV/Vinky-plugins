@@ -8,6 +8,6 @@ wss.on('connection', (ws, req) => {
 
   // Handle WebSocket closing
   ws.on('close', () => {
-    console.log("Connection closed!");
+    console.log("Connection closed !");
   });
 });
