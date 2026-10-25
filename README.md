@@ -1,2 +1,2 @@
 # Vinky's plugins
-Old plguins of PagodaRenewal & their concepts
+Old plugins of PagodaRenewal & their concepts
