@@ -1,0 +1,9 @@
+let timerId = setInterval(() => {
+
+  let result = mc.runcmdEx("tps");
+  log(result.output+" / "+mc.getAllEntities().length)
+}, 1000);
+
+mc.regPlayerCmd('spawm', '123', (pl) => {
+  mc.spawnSimulatedPlayer("Loader", pl.pos)
+})

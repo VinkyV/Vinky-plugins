@@ -1,0 +1,150 @@
+var _SHOW_ERROR_INFO = false;
+
+function GetTodayLogPath() {
+    return './logs/PagodaProtect-' + system.getTimeStr().substr(0, 10) + '.log';
+}
+
+var logFile;
+function OpenNewFile()
+{
+    let nowLogPath = GetTodayLogPath();
+
+    var isNewFile = false;
+    if (!file.exists(nowLogPath))
+        isNewFile = true;
+    
+    logFile = file.open(nowLogPath,file.AppendMode);
+    if(!logFile)
+    {
+        throw Error("Cannot open txt file! Log to file doesn't work!");
+    }
+    
+    file.writeLine(nowLogPath, '[' + system.getTimeStr() + '] Server Loaded!');
+}
+OpenNewFile();
+
+function writeLog(logStr) {
+  logString = '[' + system.getTimeStr() + '] ' + logStr;
+  logFile.writeLine(String(logString));
+  logFile.flush();
+}
+//Log File Path
+log("By VinkyV#7660")
+//onJoin
+mc.listen("onJoin", function (pl) {
+  try {
+    let pos = pl.pos;
+    writeLog(`${pl.realName}(${pl.xuid}) joined at: ${pos.dim} ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onDie
+mc.listen("onPlayerDie", function (pl) {
+  try {
+    let pos = pl.pos;
+    let nbt=pl.getNbt();
+    let saveNBT = NBT.createTag(NBT.Compound);
+    saveNBT.setTag("OffHand",nbt.getTag("Offhand"));
+    saveNBT.setTag("Inventory",nbt.getTag("Inventory"));
+    saveNBT.setTag("Armor",nbt.getTag("Armor"));
+    file.writeTo(`plugins/Saves/${pl.name}-${system.getTimeStr()}.json`,saveNBT.toSNBT());
+    writeLog(`${pl.realName}(${pl.xuid}) died on: ${pos.dim} ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onMobDie
+mc.listen("onMobDie", function (mob, source) {
+  try {
+    if(mob.type != "minecraft:player") {
+      let pos = mob.pos
+      writeLog(`${mob.name} died on: ${pos.dim} ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)} by ${source.name}`)
+    }
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onChat
+mc.listen("onChat", function (pl, msg) {
+  try {
+    writeLog(`${pl.realName}(${pl.xuid}) chatted: ${msg}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onDestroyBlock
+mc.listen("onDestroyBlock", function (pl,bl) {
+  try {
+    let pos = pl.pos;
+    let blPos = bl.pos;
+    writeLog(`${pl.realName}(${pl.xuid}) destroyed ${bl.name} at: ${pos.dim} ${blPos.x.toFixed(0)} ${blPos.y.toFixed(0)} ${blPos.z.toFixed(0)}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onPlaceBlock
+mc.listen("onPlaceBlock", function (pl,bl) {
+  try {
+    let pos = pl.pos;
+    let blPos = bl.pos;
+    writeLog(`${pl.realName}(${pl.xuid}) placed ${bl.name} at: ${pos.dim} ${blPos.x.toFixed(0)} ${blPos.y.toFixed(0)} ${blPos.z.toFixed(0)}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onOpenContainer
+mc.listen("onOpenContainer", function (pl,bl) {
+  try {
+    let pos = pl.pos;
+    let blPos = bl.pos;
+    writeLog(`${pl.realName}(${pl.xuid}) opened ${bl.name} at: ${pos.dim} ${blPos.x.toFixed(0)} ${blPos.y.toFixed(0)} ${blPos.z.toFixed(0)}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onCloseContainer
+mc.listen("onCloseContainer", function (pl,bl) {
+  try {
+    let pos = pl.pos;
+    let blPos = bl.pos;
+    writeLog(`${pl.realName}(${pl.xuid}) closed ${bl.name} at: ${pos.dim} ${blPos.x.toFixed(0)} ${blPos.y.toFixed(0)} ${blPos.z.toFixed(0)}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onInventoryChange
+mc.listen("onInventoryChange", function (pl, slotNum, oldItem, newItem) {
+  try {
+    let pos = pl.pos;
+    if (newItem.isNull())
+      writeLog(`${pl.realName}(${pl.xuid}) ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)} removed items: ${oldItem.name} ${oldItem.count}x from slot: ${slotNum}`)
+    else
+      writeLog(`${pl.realName}(${pl.xuid}) ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)} put items: ${newItem.name} ${newItem.count}x in slot: ${slotNum}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
+//onContainerChange
+mc.listen("onContainerChange", function (pl, bl, slotNum, oldItem, newItem) {
+  try {
+    let pos = pl.pos;
+    let blPos = bl.pos;
+    if (newItem.isNull())
+      writeLog(`${pl.realName}(${pl.xuid}) ${pos.dim} ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)} removed items: ${oldItem.name} ${oldItem.count}x from contaner: ${bl.name} ${blPos.x.toFixed(0)} ${blPos.y.toFixed(0)} ${blPos.z.toFixed(0)} from slot: ${slotNum}`)
+    else
+      writeLog(`${pl.realName}(${pl.xuid}) ${pos.dim} ${pos.x.toFixed(0)} ${pos.y.toFixed(0)} ${pos.z.toFixed(0)} put items: ${newItem.name} ${newItem.count}x in container: ${bl.name} ${blPos.x.toFixed(0)} ${blPos.y.toFixed(0)} ${blPos.z.toFixed(0)} in slot: ${slotNum}`)
+  }
+  catch (exception) {
+    if(_SHOW_ERROR_INFO) throw exception;
+  }
+});
